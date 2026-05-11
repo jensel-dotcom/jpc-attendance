@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JPC Attendance Dashboard — Room 101 Grade 12 STEM</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --navy:   #0a2463;
+  --blue:   #1a56c4;
+  --sky:    #3b82f6;
+  --light:  #dbeafe;
+  --white:  #ffffff;
+  --bg:     #f0f4ff;
+  --border: #c7d9f8;
+  --muted:  #64748b;
+  --text:   #0f172a;
+  --green:  #16a34a;
+  --amber:  #d97706;
+  --red:    #dc2626;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(10,36,99,0.10);
+  --shsm:   0 2px 8px rgba(10,36,99,0.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── HEADER ── */
+header{
+  background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);
+  color:white;padding:0 28px;
+  box-shadow:0 4px 32px rgba(10,36,99,0.25);
+  position:sticky;top:0;z-index:100;
+}
+.hdr{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:16px;height:68px;}
+.logo-ring{
+  width:48px;height:48px;border-radius:50%;background:white;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;flex-shrink:0;
+  box-shadow:0 0 0 3px rgba(255,255,255,0.25);
+}
+.logo-ring img{width:44px;height:44px;object-fit:contain;}
+.school-info h1{font-size:16px;font-weight:800;line-height:1.2;}
+.school-info p{font-size:11px;opacity:0.72;font-weight:400;}
+.hdr-right{margin-left:auto;text-align:right;}
+#clock{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;letter-spacing:2px;
+  background:rgba(255,255,255,0.12);padding:5px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);}
+#cdate{font-size:11px;opacity:0.65;margin-top:3px;}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1400px;margin:0 auto;padding:24px 20px;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:white;border-radius:var(--radius);padding:5px;
+  box-shadow:var(--shsm);border:1px solid var(--border);margin-bottom:22px;width:fit-content;}
+.tab{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-family:'Outfit',sans-serif;
+  font-size:13px;font-weight:600;color:var(--muted);background:transparent;transition:all .2s;
+  display:flex;align-items:center;gap:6px;}
+.tab.on{background:linear-gradient(135deg,var(--navy),var(--blue));color:white;
+  box-shadow:0 3px 12px rgba(26,86,196,0.35);}
+.tab:hover:not(.on){background:var(--light);color:var(--blue);}
+
+/* ── CONTROLS ── */
+.cbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;}
+.clabel{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;}
+input[type=date],select,input[type=text]{
+  font-family:'Outfit',sans-serif;font-size:13px;padding:8px 12px;
+  border:1.5px solid var(--border);border-radius:8px;background:white;color:var(--text);
+  outline:none;transition:border .2s,box-shadow .2s;}
+input[type=date]:focus,select:focus,input[type=text]:focus{
+  border-color:var(--sky);box-shadow:0 0 0 3px rgba(59,130,246,0.13);}
+input[type=text]{min-width:200px;}
+.btn{font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;padding:8px 16px;
+  border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;}
+.btn-p{background:linear-gradient(135deg,var(--navy),var(--blue));color:white;box-shadow:0 3px 10px rgba(26,86,196,0.28);}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(26,86,196,0.38);}
+.btn-g{background:linear-gradient(135deg,#15803d,#16a34a);color:white;box-shadow:0 3px 10px rgba(22,163,74,0.28);}
+.btn-g:hover{transform:translateY(-1px);}
+.btn-o{background:white;color:var(--blue);border:1.5px solid var(--border);}
+.btn-o:hover{border-color:var(--sky);background:var(--light);}
+
+/* ── STAT CARDS ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:20px;}
+.scard{background:white;border-radius:var(--radius);padding:16px 18px;border:1px solid var(--border);
+  box-shadow:var(--shsm);position:relative;overflow:hidden;}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.scard.c-blue::before{background:var(--blue);}
+.scard.c-green::before{background:var(--green);}
+.scard.c-amber::before{background:var(--amber);}
+.scard.c-red::before{background:var(--red);}
+.scard-icon{font-size:20px;margin-bottom:6px;}
+.scard-val{font-size:30px;font-weight:800;color:var(--navy);line-height:1;}
+.scard-val.sm{font-size:17px;margin-top:2px;}
+.scard-lbl{font-size:11px;color:var(--muted);font-weight:500;margin-top:3px;}
+
+/* ── SUBJECT PILLS ── */
+.pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;}
+.pill{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--border);background:white;color:var(--muted);transition:all .18s;white-space:nowrap;}
+.pill.on{background:linear-gradient(135deg,var(--navy),var(--blue));color:white;
+  border-color:transparent;box-shadow:0 3px 10px rgba(26,86,196,0.28);}
+.pill:hover:not(.on){border-color:var(--sky);color:var(--blue);}
+
+/* ── TABLE CARD ── */
+.tcard{background:white;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;}
+.tcard-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+  border-bottom:1px solid var(--border);background:#f7f9ff;}
+.tcard-title{font-size:14px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:7px;}
+.badge-count{font-size:12px;font-weight:700;background:var(--light);color:var(--blue);
+  padding:2px 9px;border-radius:999px;}
+.tscroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:linear-gradient(135deg,var(--navy),#1e3a8a);color:white;padding:11px 14px;
+  text-align:left;font-weight:600;font-size:11px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+tbody tr{border-bottom:1px solid #eef2ff;transition:background .13s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#f0f6ff;}
+tbody td{padding:11px 14px;vertical-align:middle;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+  border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;}
+.b-present{background:#dcfce7;color:#15803d;}
+.b-late{background:#fef3c7;color:#b45309;}
+.b-absent{background:#fee2e2;color:#b91c1c;}
+.b-subj{background:var(--light);color:var(--blue);padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;}
+.sid{font-family:'JetBrains Mono',monospace;font-size:11px;background:#f0f6ff;
+  padding:2px 7px;border-radius:5px;color:var(--navy);}
+.sname{font-weight:600;color:var(--navy);}
+.ttime{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--blue);}
+.empty{text-align:center;padding:52px 20px;color:var(--muted);}
+.empty .ei{font-size:44px;margin-bottom:10px;}
+.empty p{font-size:14px;font-weight:500;}
+.empty small{font-size:12px;color:#94a3b8;margin-top:4px;display:block;}
+
+/* ── CALENDAR ── */
+.cal-wrap{background:white;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;}
+.cal-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;
+  background:linear-gradient(135deg,var(--navy),var(--blue));color:white;}
+.cal-month{font-size:18px;font-weight:800;}
+.cal-nav{background:rgba(255,255,255,0.15);border:none;color:white;border-radius:7px;
+  padding:6px 13px;cursor:pointer;font-size:15px;transition:background .2s;}
+.cal-nav:hover{background:rgba(255,255,255,0.25);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);}
+.cdn{text-align:center;padding:10px 4px;font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+.cc{border:1px solid #eef2ff;min-height:76px;padding:7px;cursor:pointer;transition:background .13s;}
+.cc:hover{background:#f0f6ff;}
+.cc.other{background:#f8faff;}
+.cc.today{background:#eff6ff;}
+.cc.today .cdate{background:var(--blue);color:white;}
+.cdate{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;margin-bottom:5px;}
+.ccount{font-size:10px;font-weight:700;color:var(--blue);background:var(--light);
+  padding:2px 6px;border-radius:999px;display:inline-block;}
+.cdots{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;}
+.cdot{width:6px;height:6px;border-radius:50%;background:var(--sky);}
+
+/* ── LOADING ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,36,99,0.16);z-index:999;
+  align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.overlay.on{display:flex;}
+.lbox{background:white;border-radius:var(--radius);padding:28px 36px;text-align:center;box-shadow:var(--shadow);}
+.lbox p{margin-top:10px;font-weight:600;color:var(--navy);font-size:14px;}
+.spin{display:inline-block;width:32px;height:32px;border:3px solid var(--light);
+  border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:white;
+  padding:12px 20px;border-radius:9px;font-size:13px;font-weight:600;
+  box-shadow:0 8px 24px rgba(10,36,99,0.28);transform:translateY(70px);opacity:0;
+  transition:all .3s;z-index:9999;}
+#toast.on{transform:translateY(0);opacity:1;}
+
+/* ── PANE ── */
+.pane{display:none;}
+.pane.on{display:block;}
+
+/* ── INFO BOX ── */
+.info-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:12px 16px;
+  font-size:13px;color:#1e40af;margin-bottom:16px;display:flex;align-items:flex-start;gap:8px;}
+
+@media(max-width:768px){
+  .hdr{height:auto;padding:12px 0;flex-wrap:wrap;}
+  .wrap{padding:14px 10px;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  #clock{font-size:17px;}
+}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div class="lbox">
+    <div class="spin"></div>
+    <p id="ltxt">Loading...</p>
+  </div>
+</div>
+<div id="toast"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="hdr">
+    <div class="logo-ring">
+      <!--
+        PASTE YOUR LOGO HERE.
+        Option A — same folder: <img src="jpc_logo.png" alt="JPC"/>
+        Option B — base64:      <img src="data:image/png;base64,..." alt="JPC"/>
+        The circle ring will frame it automatically.
+      -->
+      <img src="jpc_logo.png" alt="JPC"
+        onerror="this.outerHTML='<span style=\'font-size:13px;font-weight:800;color:var(--navy);\'>JPC</span>'"/>
+    </div>
+    <div class="school-info">
+      <h1>John Paul College</h1>
+      <p>Room 101 — Grade 12 STEM &nbsp;|&nbsp; Attendance Dashboard</p>
+    </div>
+    <div class="hdr-right">
+      <div id="clock">--:--:--</div>
+      <div id="cdate"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab on" id="t-daily"   onclick="go('daily',this)">📋 Daily View</button>
+    <button class="tab"    id="t-subject" onclick="go('subject',this)">📚 By Subject</button>
+    <button class="tab"    id="t-calendar"onclick="go('calendar',this)">📅 Calendar</button>
+    <button class="tab"    id="t-absent"  onclick="go('absent',this)">❌ Absent Report</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       DAILY VIEW
+  ══════════════════════════════════════════ -->
+  <div class="pane on" id="pane-daily">
+
+    <div class="cbar">
+      <span class="clabel">📅 Date:</span>
+      <input type="date" id="d-date" onchange="loadDaily()"/>
+      <span class="clabel">🔍 Search:</span>
+      <input type="text" id="d-search" placeholder="Name, ID, grade, subject…" oninput="renderDaily()"/>
+      <button class="btn btn-p" onclick="loadDaily()">🔄 Refresh</button>
+      <button class="btn btn-g" onclick="csvDaily()">⬇ Export CSV</button>
+    </div>
+
+    <div class="stats" id="d-stats">
+      <div class="scard c-blue"><div class="scard-icon">👥</div><div class="scard-val" id="d-total">—</div><div class="scard-lbl">Total Scans</div></div>
+      <div class="scard c-green"><div class="scard-icon">✅</div><div class="scard-val" id="d-ontime">—</div><div class="scard-lbl">On Time</div></div>
+      <div class="scard c-amber"><div class="scard-icon">⏰</div><div class="scard-val" id="d-late">—</div><div class="scard-lbl">Late</div></div>
+      <div class="scard c-blue"><div class="scard-icon">📚</div><div class="scard-val" id="d-subjs">—</div><div class="scard-lbl">Subjects</div></div>
+      <div class="scard c-blue"><div class="scard-icon">🕐</div><div class="scard-val sm" id="d-last">—</div><div class="scard-lbl">Last Scan</div></div>
+    </div>
+
+    <div class="pills" id="d-pills"></div>
+
+    <div class="tcard">
+      <div class="tcard-hdr">
+        <span class="tcard-title">🗒 Attendance Records <span class="badge-count" id="d-cnt">0</span></span>
+        <span style="font-size:11px;color:var(--muted);">Late if arrival after 8:00 AM</span>
+      </div>
+      <div class="tscroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Student ID</th><th>Name</th><th>Grade</th>
+            <th>Subject</th><th>Adviser</th><th>Time</th><th>Day</th><th>Status</th>
+          </tr></thead>
+          <tbody id="d-body">
+            <tr><td colspan="9"><div class="empty"><div class="ei">📋</div><p>Select a date above to load records</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       BY SUBJECT
+  ══════════════════════════════════════════ -->
+  <div class="pane" id="pane-subject">
+
+    <div class="cbar">
+      <span class="clabel">📅 Date:</span>
+      <input type="date" id="s-date" onchange="loadSubject()"/>
+      <span class="clabel">📚 Subject:</span>
+      <select id="s-sel" onchange="renderSubject()"><option value="">— pick a subject —</option></select>
+      <span class="clabel">🔍</span>
+      <input type="text" id="s-search" placeholder="Search name or ID…" oninput="renderSubject()"/>
+      <button class="btn btn-p" onclick="loadSubject()">🔄 Refresh</button>
+      <button class="btn btn-g" onclick="csvSubject()">⬇ Export CSV</button>
+    </div>
+
+    <div class="stats">
+      <div class="scard c-green"><div class="scard-icon">✅</div><div class="scard-val" id="s-present">—</div><div class="scard-lbl">Present</div></div>
+      <div class="scard c-amber"><div class="scard-icon">⏰</div><div class="scard-val" id="s-late">—</div><div class="scard-lbl">Late</div></div>
+      <div class="scard c-blue"><div class="scard-icon">🥇</div><div class="scard-val sm" id="s-first">—</div><div class="scard-lbl">First Arrival</div></div>
+      <div class="scard c-blue"><div class="scard-icon">🏁</div><div class="scard-val sm" id="s-last">—</div><div class="scard-lbl">Last Arrival</div></div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-hdr">
+        <span class="tcard-title">📚 Subject Attendance <span class="badge-count" id="s-cnt">0</span></span>
+      </div>
+      <div class="tscroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Student ID</th><th>Name</th><th>Grade</th>
+            <th>Time</th><th>Day</th><th>Adviser</th><th>Status</th>
+          </tr></thead>
+          <tbody id="s-body">
+            <tr><td colspan="8"><div class="empty"><div class="ei">📚</div><p>Select a date and subject</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       CALENDAR
+  ══════════════════════════════════════════ -->
+  <div class="pane" id="pane-calendar">
+    <div class="cal-wrap">
+      <div class="cal-hdr">
+        <button class="cal-nav" onclick="calMove(-1)">&#8592;</button>
+        <span class="cal-month" id="cal-label"></span>
+        <button class="cal-nav" onclick="calMove(1)">&#8594;</button>
+      </div>
+      <div class="cal-grid" id="cal-daynames"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+    <p style="margin-top:10px;font-size:12px;color:var(--muted);">💡 Click any date to view that day's attendance in Daily View.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ABSENT REPORT
+  ══════════════════════════════════════════ -->
+  <div class="pane" id="pane-absent">
+
+    <div class="info-box">
+      ℹ️ <span>This report compares the registered students list (<code>/students/</code>) against attendance records to find who <strong>did not scan</strong> for a given subject.</span>
+    </div>
+
+    <div class="cbar">
+      <span class="clabel">📅 Date:</span>
+      <input type="date" id="a-date" onchange="loadAbsent()"/>
+      <span class="clabel">📚 Subject:</span>
+      <select id="a-sel" onchange="renderAbsent()"><option value="">— All subjects —</option></select>
+      <button class="btn btn-p" onclick="loadAbsent()">🔄 Load</button>
+      <button class="btn btn-g" onclick="csvAbsent()">⬇ Export CSV</button>
+    </div>
+
+    <div class="stats">
+      <div class="scard c-blue"><div class="scard-icon">👥</div><div class="scard-val" id="a-total">—</div><div class="scard-lbl">Registered Students</div></div>
+      <div class="scard c-green"><div class="scard-icon">✅</div><div class="scard-val" id="a-present">—</div><div class="scard-lbl">Present</div></div>
+      <div class="scard c-red"><div class="scard-icon">❌</div><div class="scard-val" id="a-absent">—</div><div class="scard-lbl">Absent</div></div>
+      <div class="scard c-amber"><div class="scard-icon">📊</div><div class="scard-val sm" id="a-rate">—</div><div class="scard-lbl">Attendance Rate</div></div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-hdr">
+        <span class="tcard-title">❌ Absent Students <span class="badge-count" id="a-cnt">0</span></span>
+      </div>
+      <div class="tscroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Student ID</th><th>Name</th><th>Grade</th><th>Subject</th><th>Status</th>
+          </tr></thead>
+          <tbody id="a-body">
+            <tr><td colspan="6"><div class="empty"><div class="ei">❌</div><p>Select a date to load absent report</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════
+const FB_HOST = "student-attendance-syste-d34d5-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FB_AUTH = "AIzaSyBtFNJPfACWPF51-BcdvJq4FE_rbKGiQNI";
+const LATE_H  = 8, LATE_M = 0;   // 8:00 AM threshold
+
+// ═══════════════════════════════════════════════════════════
+//  FIREBASE
+// ═══════════════════════════════════════════════════════════
+async function fbGet(path) {
+  const url = `https://${FB_HOST}/${path}.json?auth=${FB_AUTH}`;
+  const r   = await fetch(url);
+  if (!r.ok) throw new Error(`Firebase ${r.status}`);
+  return r.json();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CRITICAL: Parse Firebase attendance data correctly
+//  Structure: attendance/{date}/{subject}/{studentID}/{fields}
+//
+//  A valid student record has a "name" field (string).
+//  The subject level keys are subject names (e.g. "Research1").
+//  We must SKIP any key whose value is NOT an object of student records.
+// ═══════════════════════════════════════════════════════════
+
+// Known field names that appear at the RECORD level (not subject/student names)
+const RECORD_FIELDS = new Set(['name','grade','time','date','day','classroom','subject','adviser','status']);
+
+function isStudentRecord(val) {
+  // A student record is an object that has a "name" field (string)
+  return val && typeof val === 'object' && typeof val.name === 'string' && val.name.trim() !== '';
+}
+
+function isSubjectGroup(val) {
+  // A subject group is an object whose values are student records
+  if (!val || typeof val !== 'object') return false;
+  // At least one value must be a student record
+  return Object.values(val).some(v => isStudentRecord(v));
+}
+
+/**
+ * Parse raw Firebase attendance/{date} data into clean array of rows.
+ * Returns: [ { sid, name, grade, time, day, subject, adviser, classroom, status } ]
+ */
+function parseAttendance(raw) {
+  if (!raw || typeof raw !== 'object') return [];
+  const rows = [];
+
+  for (const key1 in raw) {
+    const val1 = raw[key1];
+
+    // Skip if key1 is a known record field name (old flat structure leaking)
+    if (RECORD_FIELDS.has(key1)) continue;
+
+    if (isSubjectGroup(val1)) {
+      // key1 = subject name, val1 = { studentID: recordObj, ... }
+      const subject = key1;
+      for (const sid in val1) {
+        if (RECORD_FIELDS.has(sid)) continue; // skip field-name keys
+        const rec = val1[sid];
+        if (!isStudentRecord(rec)) continue;
+        rows.push({
+          sid,
+          name:      rec.name      || '—',
+          grade:     rec.grade     || '—',
+          time:      rec.time      || '—',
+          day:       rec.day       || '—',
+          subject:   rec.subject   || subject,
+          adviser:   rec.adviser   || '—',
+          classroom: rec.classroom || '—',
+          status:    rec.status    || 'present',
+        });
+      }
+    } else if (isStudentRecord(val1)) {
+      // Old flat structure: key1 = studentID, val1 = record directly
+      rows.push({
+        sid:       key1,
+        name:      val1.name      || '—',
+        grade:     val1.grade     || '—',
+        time:      val1.time      || '—',
+        day:       val1.day       || '—',
+        subject:   val1.subject   || '(No subject)',
+        adviser:   val1.adviser   || '—',
+        classroom: val1.classroom || '—',
+        status:    val1.status    || 'present',
+      });
+    }
+    // anything else: skip (garbage / unexpected data)
+  }
+
+  // Sort by time
+  rows.sort((a,b) => (a.time||'').localeCompare(b.time||''));
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════
+function todayPH() {
+  const ph = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));
+  return `${ph.getFullYear()}-${pad(ph.getMonth()+1)}-${pad(ph.getDate())}`;
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function isLate(t) {
+  if (!t || t==='—') return false;
+  const [h,m] = t.split(':').map(Number);
+  return h > LATE_H || (h===LATE_H && m > LATE_M);
+}
+
+function statusBadge(t) {
+  return isLate(t)
+    ? `<span class="badge b-late">⏰ Late</span>`
+    : `<span class="badge b-present">✅ On Time</span>`;
+}
+
+function loading(msg='Loading…'){
+  document.getElementById('ltxt').textContent=msg;
+  document.getElementById('overlay').classList.add('on');
+}
+function done(){ document.getElementById('overlay').classList.remove('on'); }
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),3000);
+}
+
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+
+// ═══════════════════════════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════════════════════════
+function tick(){
+  const ph=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));
+  document.getElementById('clock').textContent=
+    `${pad(ph.getHours())}:${pad(ph.getMinutes())}:${pad(ph.getSeconds())}`;
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const mos=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('cdate').textContent=
+    `${days[ph.getDay()]}, ${mos[ph.getMonth()]} ${ph.getDate()}, ${ph.getFullYear()}`;
+}
+setInterval(tick,1000); tick();
+
+// ═══════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════
+function go(name, btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pane-'+name).classList.add('on');
+  btn.classList.add('on');
+  if(name==='calendar') renderCal();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DAILY VIEW
+// ═══════════════════════════════════════════════════════════
+let dRows = [];      // all parsed rows for current date
+let dFilter = 'all'; // current subject pill filter
+
+async function loadDaily(){
+  const date = document.getElementById('d-date').value;
+  if(!date) return;
+  loading('Loading attendance for '+date+'…');
+  try {
+    const raw = await fbGet(`attendance/${date}`);
+    dRows   = parseAttendance(raw);
+    dFilter = 'all';
+    buildPills();
+    updateDStats();
+    renderDaily();
+  } catch(e){ toast('⚠️ '+e.message); }
+  done();
+}
+
+function buildPills(){
+  const subjects = [...new Set(dRows.map(r=>r.subject))].sort();
+  const container = document.getElementById('d-pills');
+  container.innerHTML='';
+  if(!subjects.length) return;
+
+  const mkPill = (label, val, count) => {
+    const p = document.createElement('span');
+    p.className = 'pill' + (dFilter===val?' on':'');
+    p.textContent = `${label} (${count})`;
+    p.onclick = ()=>{
+      dFilter=val;
+      container.querySelectorAll('.pill').forEach(x=>x.classList.remove('on'));
+      p.classList.add('on');
+      renderDaily();
+    };
+    return p;
+  };
+
+  container.appendChild(mkPill('All', 'all', dRows.length));
+  subjects.forEach(s=>{
+    const cnt = dRows.filter(r=>r.subject===s).length;
+    container.appendChild(mkPill(s, s, cnt));
+  });
+}
+
+function updateDStats(){
+  const rows = dRows;
+  setVal('d-total', rows.length);
+  setVal('d-ontime', rows.filter(r=>!isLate(r.time)).length);
+  setVal('d-late',   rows.filter(r=>isLate(r.time)).length);
+  setVal('d-subjs',  new Set(rows.map(r=>r.subject)).size);
+  const times = rows.map(r=>r.time).filter(t=>t&&t!=='—').sort();
+  setVal('d-last', times.length ? times[times.length-1] : '—');
+}
+
+function renderDaily(){
+  const q = (document.getElementById('d-search').value||'').toLowerCase().trim();
+  let rows = dFilter==='all' ? [...dRows] : dRows.filter(r=>r.subject===dFilter);
+  if(q) rows = rows.filter(r=>
+    r.name.toLowerCase().includes(q) ||
+    r.sid.toLowerCase().includes(q)  ||
+    r.grade.toLowerCase().includes(q)||
+    r.subject.toLowerCase().includes(q)
+  );
+
+  setVal('d-cnt', rows.length);
+  const tbody = document.getElementById('d-body');
+
+  if(!rows.length){
+    tbody.innerHTML=`<tr><td colspan="9"><div class="empty">
+      <div class="ei">🔍</div><p>No records found</p>
+      <small>${dRows.length===0 ? 'No attendance logged for this date yet.' : 'Try a different search or filter.'}</small>
+    </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map((r,i)=>`<tr>
+    <td style="color:var(--muted);font-size:11px;">${i+1}</td>
+    <td><span class="sid">${r.sid}</span></td>
+    <td><span class="sname">${r.name}</span></td>
+    <td style="font-size:12px;">${r.grade}</td>
+    <td><span class="b-subj">${r.subject}</span></td>
+    <td style="font-size:12px;color:var(--muted);">${r.adviser}</td>
+    <td><span class="ttime">${r.time}</span></td>
+    <td style="font-size:12px;">${r.day}</td>
+    <td>${statusBadge(r.time)}</td>
+  </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  BY SUBJECT
+// ═══════════════════════════════════════════════════════════
+let sAllData = {}; // raw parsed { subject: [rows] }
+
+async function loadSubject(){
+  const date = document.getElementById('s-date').value;
+  if(!date) return;
+  loading('Loading subject data…');
+  try {
+    const raw  = await fbGet(`attendance/${date}`);
+    const rows = parseAttendance(raw);
+
+    // Group by subject
+    sAllData = {};
+    rows.forEach(r=>{
+      if(!sAllData[r.subject]) sAllData[r.subject]=[];
+      sAllData[r.subject].push(r);
+    });
+
+    const sel = document.getElementById('s-sel');
+    sel.innerHTML='<option value="">— pick a subject —</option>';
+    Object.keys(sAllData).sort().forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s; o.textContent=s+` (${sAllData[s].length} scans)`;
+      sel.appendChild(o);
+    });
+    if(Object.keys(sAllData).length===1){
+      sel.value=Object.keys(sAllData)[0];
+    }
+    renderSubject();
+  } catch(e){ toast('⚠️ '+e.message); }
+  done();
+}
+
+function renderSubject(){
+  const subj = document.getElementById('s-sel').value;
+  const q    = (document.getElementById('s-search').value||'').toLowerCase().trim();
+
+  if(!subj){
+    document.getElementById('s-body').innerHTML=
+      `<tr><td colspan="8"><div class="empty"><div class="ei">📚</div><p>Select a subject above</p></div></td></tr>`;
+    setVal('s-cnt',0);
+    ['s-present','s-late','s-first','s-last'].forEach(id=>setVal(id,'—'));
+    return;
+  }
+
+  let rows = [...(sAllData[subj]||[])];
+  if(q) rows=rows.filter(r=>
+    r.name.toLowerCase().includes(q)||r.sid.toLowerCase().includes(q)
+  );
+
+  setVal('s-cnt',rows.length);
+  setVal('s-present',rows.filter(r=>!isLate(r.time)).length);
+  setVal('s-late',rows.filter(r=>isLate(r.time)).length);
+  setVal('s-first',rows[0]?.time||'—');
+  setVal('s-last',rows[rows.length-1]?.time||'—');
+
+  const tbody=document.getElementById('s-body');
+  if(!rows.length){
+    tbody.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="ei">🔍</div><p>No records</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=rows.map((r,i)=>`<tr>
+    <td style="color:var(--muted);font-size:11px;">${i+1}</td>
+    <td><span class="sid">${r.sid}</span></td>
+    <td><span class="sname">${r.name}</span></td>
+    <td style="font-size:12px;">${r.grade}</td>
+    <td><span class="ttime">${r.time}</span></td>
+    <td style="font-size:12px;">${r.day}</td>
+    <td style="font-size:12px;color:var(--muted);">${r.adviser}</td>
+    <td>${statusBadge(r.time)}</td>
+  </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CALENDAR
+// ═══════════════════════════════════════════════════════════
+const MONS=['January','February','March','April','May','June',
+            'July','August','September','October','November','December'];
+const WDAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+let calY, calM, calCache={};
+
+function initCal(){
+  const ph=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));
+  calY=ph.getFullYear(); calM=ph.getMonth();
+}
+
+async function renderCal(){
+  setVal('cal-label',`${MONS[calM]} ${calY}`);
+  const dnames=document.getElementById('cal-daynames');
+  dnames.innerHTML=WDAYS.map(d=>`<div class="cdn">${d}</div>`).join('');
+
+  const first=new Date(calY,calM,1).getDay();
+  const dim=new Date(calY,calM+1,0).getDate();
+  const dprev=new Date(calY,calM,0).getDate();
+  const today=todayPH();
+  const mkey=`${calY}-${pad(calM+1)}`;
+
+  if(!calCache[mkey]){
+    loading('Loading calendar…');
+    try{
+      const data=await fbGet('attendance');
+      calCache[mkey]={};
+      if(data){
+        for(const dk in data){
+          if(!dk.startsWith(mkey)) continue;
+          const rows=parseAttendance(data[dk]);
+          const subjs=[...new Set(rows.map(r=>r.subject))];
+          calCache[mkey][dk]={ count:rows.length, subjects:subjs };
+        }
+      }
+    }catch(e){}
+    done();
+  }
+
+  const md=calCache[mkey]||{};
+  let cells='';
+  for(let i=first-1;i>=0;i--)
+    cells+=`<div class="cc other"><div class="cdate" style="color:#ccc;">${dprev-i}</div></div>`;
+  for(let d=1;d<=dim;d++){
+    const ds=`${calY}-${pad(calM+1)}-${pad(d)}`;
+    const info=md[ds];
+    const isT=ds===today;
+    cells+=`<div class="cc${isT?' today':''}" onclick="calJump('${ds}')">
+      <div class="cdate">${d}</div>
+      ${info?`<div class="ccount">${info.count} scan${info.count!==1?'s':''}</div>
+      <div class="cdots">${info.subjects.slice(0,5).map(()=>'<div class="cdot"></div>').join('')}</div>`:''}
+    </div>`;
+  }
+  const total=first+dim;
+  const rem=total%7===0?0:7-total%7;
+  for(let d=1;d<=rem;d++)
+    cells+=`<div class="cc other"><div class="cdate" style="color:#ccc;">${d}</div></div>`;
+  document.getElementById('cal-grid').innerHTML=cells;
+}
+
+function calMove(dir){
+  calM+=dir;
+  if(calM>11){calM=0;calY++;}
+  if(calM<0){calM=11;calY--;}
+  renderCal();
+}
+
+function calJump(ds){
+  document.getElementById('d-date').value=ds;
+  go('daily',document.getElementById('t-daily'));
+  loadDaily();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ABSENT REPORT
+// ═══════════════════════════════════════════════════════════
+let absentData={}, allStudents={};
+
+async function loadAbsent(){
+  const date=document.getElementById('a-date').value;
+  if(!date) return;
+  loading('Loading absent report…');
+  try{
+    const [att,studs]=await Promise.all([
+      fbGet(`attendance/${date}`),
+      fbGet('students')
+    ]);
+    const rows=parseAttendance(att||{});
+    allStudents=studs||{};
+
+    // Group present students by subject
+    absentData={};
+    rows.forEach(r=>{
+      if(!absentData[r.subject]) absentData[r.subject]=new Set();
+      absentData[r.subject].add(r.sid);
+    });
+
+    const sel=document.getElementById('a-sel');
+    sel.innerHTML='<option value="">— All subjects —</option>';
+    Object.keys(absentData).sort().forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s; o.textContent=s;
+      sel.appendChild(o);
+    });
+    renderAbsent();
+  }catch(e){ toast('⚠️ '+e.message); }
+  done();
+}
+
+function renderAbsent(){
+  const filterS=document.getElementById('a-sel').value;
+  const total=Object.keys(allStudents).length;
+  const subjects=filterS?[filterS]:Object.keys(absentData);
+
+  // Build absent rows
+  const absentRows=[];
+  subjects.forEach(subj=>{
+    const presentSet=absentData[subj]||new Set();
+    Object.entries(allStudents).forEach(([sid,s])=>{
+      if(!presentSet.has(sid)){
+        absentRows.push({ sid, name:s.name||'—', grade:s.grade||'—', subject:subj });
+      }
+    });
+  });
+
+  const presentCount = subjects.reduce((acc,s)=>{
+    return acc + (absentData[s]?absentData[s].size:0);
+  },0);
+  const rate = total && subjects.length
+    ? Math.round(presentCount / (total*subjects.length) * 100)+'%'
+    : '—';
+
+  setVal('a-total',total);
+  setVal('a-present',presentCount);
+  setVal('a-absent',absentRows.length);
+  setVal('a-rate',rate);
+  setVal('a-cnt',absentRows.length);
+
+  const tbody=document.getElementById('a-body');
+  if(!absentRows.length){
+    tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="ei">🎉</div>
+      <p>All students were present!</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=absentRows.map((r,i)=>`<tr>
+    <td style="color:var(--muted);font-size:11px;">${i+1}</td>
+    <td><span class="sid" style="background:#fee2e2;">${r.sid}</span></td>
+    <td><span class="sname">${r.name}</span></td>
+    <td style="font-size:12px;">${r.grade}</td>
+    <td><span class="b-subj">${r.subject}</span></td>
+    <td><span class="badge b-absent">❌ Absent</span></td>
+  </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CSV EXPORTS
+// ═══════════════════════════════════════════════════════════
+function makeCSV(headers, rowsArr, filename){
+  if(!rowsArr.length){ toast('⚠️ No data to export'); return; }
+  const lines=[headers, ...rowsArr].map(r=>
+    r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')
+  ).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([lines],{type:'text/csv'}));
+  a.download=filename; a.click();
+  toast('✅ Exported: '+filename);
+}
+
+function csvDaily(){
+  const date=document.getElementById('d-date').value||'unknown';
+  const rows=(dFilter==='all'?dRows:dRows.filter(r=>r.subject===dFilter))
+    .map((r,i)=>[i+1,r.sid,r.name,r.grade,r.subject,r.adviser,r.time,r.day,isLate(r.time)?'Late':'On Time']);
+  makeCSV(['#','Student ID','Name','Grade','Subject','Adviser','Time','Day','Status'],rows,`attendance_daily_${date}.csv`);
+}
+
+function csvSubject(){
+  const subj=document.getElementById('s-sel').value||'unknown';
+  const date=document.getElementById('s-date').value||'unknown';
+  const rows=(sAllData[subj]||[]).map((r,i)=>
+    [i+1,r.sid,r.name,r.grade,r.time,r.day,r.adviser,isLate(r.time)?'Late':'On Time']);
+  makeCSV(['#','Student ID','Name','Grade','Time','Day','Adviser','Status'],rows,`attendance_${subj}_${date}.csv`);
+}
+
+function csvAbsent(){
+  const date=document.getElementById('a-date').value||'unknown';
+  const tbody=document.getElementById('a-body');
+  const rows=[...tbody.querySelectorAll('tr')].map(tr=>{
+    const c=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
+    return c.length>=6?c:null;
+  }).filter(Boolean);
+  makeCSV(['#','Student ID','Name','Grade','Subject','Status'],rows,`absent_report_${date}.csv`);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+function init(){
+  const t=todayPH();
+  document.getElementById('d-date').value=t;
+  document.getElementById('s-date').value=t;
+  document.getElementById('a-date').value=t;
+  initCal();
+  loadDaily();
+}
+init();
+</script>
+</body>
+</html>
