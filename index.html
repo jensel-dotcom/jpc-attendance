@@ -627,36 +627,144 @@ function calMove(dir){ calM+=dir; if(calM>11){calM=0;calY++;} if(calM<0){calM=11
 function calJump(ds){ document.getElementById('d-date').value=ds; go('daily',document.getElementById('t-daily')); loadDaily(); }
 
 // ── ABSENT REPORT ───────────────────────────────────────────────
-let abData={},allStuds={};
+// abData  = { subject: Set of studentIDs who SCANNED (present/late) }
+// abSched = [ { subject, adviser } ] — subjects that HAD class that day from schedule
+let abData={}, abSched=[], allStuds={};
+
+// Get day-of-week string from a YYYY-MM-DD date string
+function dayFromDate(ds){
+  const d=new Date(ds+'T00:00:00');
+  return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+}
+
+// Extract subjects from a Firebase schedule node (handles period1, period2…)
+function extractSubjectsFromSched(node){
+  if(!node||typeof node!=='object') return [];
+  const out=[];
+  Object.keys(node).sort().forEach(pk=>{
+    const p=node[pk];
+    if(p&&p.subject) out.push({subject:p.subject,adviser:p.adviser||'—'});
+  });
+  return out;
+}
+
 async function loadAbsent(){
   const date=document.getElementById('a-date').value; if(!date) return;
   showLoad('Loading absent report…');
   try{
-    const [att,studs]=await Promise.all([fGet(`attendance/${date}`),fGet('students')]);
-    const rows=parseAtt(att||{}); allStuds=studs||{}; abData={};
-    rows.forEach(r=>{if(!abData[r.subject])abData[r.subject]=new Set();abData[r.subject].add(r.sid);});
+    const dayName=dayFromDate(date);
+
+    // Fetch attendance, students, default schedule, and today's override in parallel
+    const [att, studs, defSched, ovrSched] = await Promise.all([
+      fGet(`attendance/${date}`),
+      fGet('students'),
+      fGet(`schedule/${dayName}`),
+      fGet(`schedule_override/${date}/${dayName}`).catch(()=>null)
+    ]);
+
+    allStuds = studs||{};
+
+    // ── Build present set from attendance records ────────────────
+    const rows = parseAtt(att||{});
+    abData = {};
+    rows.forEach(r=>{
+      if(!abData[r.subject]) abData[r.subject]=new Set();
+      abData[r.subject].add(r.sid);
+    });
+
+    // ── Build subject list from schedule (override wins per period) ──
+    // Merge: start with default, then override individual periods
+    const merged = {};
+    if(defSched && typeof defSched==='object'){
+      Object.entries(defSched).forEach(([pk,p])=>{ if(p&&p.subject) merged[pk]={subject:p.subject,adviser:p.adviser||'—'}; });
+    }
+    if(ovrSched && typeof ovrSched==='object'){
+      Object.entries(ovrSched).forEach(([pk,p])=>{ if(p&&p.subject) merged[pk]={subject:p.subject,adviser:p.adviser||'—'}; });
+    }
+    // Also include any subjects found in actual attendance (catches edge cases)
+    rows.forEach(r=>{ if(!Object.values(merged).find(m=>m.subject===r.subject)) merged['att_'+r.subject]={subject:r.subject,adviser:r.adviser||'—'}; });
+
+    abSched = Object.values(merged).filter((v,i,a)=>a.findIndex(x=>x.subject===v.subject)===i); // dedupe by subject name
+
+    // ── Populate subject dropdown ────────────────────────────────
     const sel=document.getElementById('a-sel');
     sel.innerHTML='<option value="">— All subjects —</option>';
-    Object.keys(abData).sort().forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+    abSched.forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s.subject;
+      o.textContent=s.subject+(abData[s.subject]?` (${abData[s.subject].size} scanned)`:'  (0 scanned)');
+      sel.appendChild(o);
+    });
+
+    if(!abSched.length){
+      toast('⚠️ No schedule found for '+dayName+'. Check Firebase schedule/'+dayName,'ws');
+    }
     renderAbsent();
-  }catch(e){ toast('⚠️ '+e.message,'es'); }
+  }catch(e){ toast('⚠️ '+e.message,'es'); console.error(e); }
   hideLoad();
 }
+
 function renderAbsent(){
-  const fs=document.getElementById('a-sel').value,total=Object.keys(allStuds).length;
-  const subjs=fs?[fs]:Object.keys(abData);
+  const fs=document.getElementById('a-sel').value;
+  const total=Object.keys(allStuds).length;
+
+  // Which subjects to check
+  const subjsToCheck = fs
+    ? abSched.filter(s=>s.subject===fs)
+    : abSched;
+
+  if(!subjsToCheck.length && !fs){
+    // No schedule loaded yet
+    document.getElementById('a-body').innerHTML=
+      `<tr><td colspan="6"><div class="emp"><div class="ei">📅</div>
+        <p>No schedule found for this day</p>
+        <small>Make sure schedule is set in Firebase under schedule/{DayName}/period1…</small>
+      </div></td></tr>`;
+    sv('a-total',total); sv('a-pres','—'); sv('a-abs','—'); sv('a-rate','—'); sv('a-cnt',0);
+    return;
+  }
+
+  // Build absent rows: for each subject × each student → absent if not in abData[subject]
   const abRows=[];
-  subjs.forEach(subj=>{ const ps=abData[subj]||new Set(); Object.entries(allStuds).forEach(([sid,s])=>{ if(!ps.has(sid)) abRows.push({sid,name:s.name||'—',grade:s.grade||'—',subject:subj}); }); });
-  const pc=subjs.reduce((a,s)=>a+(abData[s]?abData[s].size:0),0);
-  const rate=total&&subjs.length?Math.round(pc/(total*subjs.length)*100)+'%':'—';
-  sv('a-total',total); sv('a-pres',pc); sv('a-abs',abRows.length); sv('a-rate',rate); sv('a-cnt',abRows.length);
+  subjsToCheck.forEach(({subject,adviser})=>{
+    const presentSet = abData[subject]||new Set();
+    Object.entries(allStuds).forEach(([sid,s])=>{
+      if(!presentSet.has(sid)){
+        abRows.push({sid, name:s.name||'—', grade:s.grade||'—', subject, adviser});
+      }
+    });
+  });
+
+  // Stats
+  const totalSlots = total * subjsToCheck.length; // expected scans
+  const presentCount = subjsToCheck.reduce((acc,{subject})=>acc+(abData[subject]?abData[subject].size:0),0);
+  const rate = totalSlots>0 ? Math.round(presentCount/totalSlots*100)+'%' : '—';
+
+  sv('a-total', total);
+  sv('a-pres',  presentCount);
+  sv('a-abs',   abRows.length);
+  sv('a-rate',  rate);
+  sv('a-cnt',   abRows.length);
+
   const tb=document.getElementById('a-body');
-  if(!abRows.length){tb.innerHTML=`<tr><td colspan="6"><div class="emp"><div class="ei">🎉</div><p>All students present!</p></div></td></tr>`;return;}
+  if(!abRows.length){
+    tb.innerHTML=`<tr><td colspan="6"><div class="emp"><div class="ei">🎉</div>
+      <p>All students present${fs?' for '+fs:''}!</p>
+    </div></td></tr>`;
+    return;
+  }
+
+  // Sort by subject then name
+  abRows.sort((a,b)=>a.subject.localeCompare(b.subject)||a.name.localeCompare(b.name));
+
   tb.innerHTML=abRows.map((r,i)=>`<tr>
     <td style="color:var(--muted);font-size:11px;">${i+1}</td>
     <td><span class="sid" style="background:#fee2e2;">${r.sid}</span></td>
-    <td><span class="sn">${r.name}</span></td><td style="font-size:12px;">${r.grade}</td>
-    <td><span class="bsj">${r.subject}</span></td><td><span class="badge bab">❌ Absent</span></td></tr>`).join('');
+    <td><span class="sn">${r.name}</span></td>
+    <td style="font-size:12px;">${r.grade}</td>
+    <td><span class="bsj">${r.subject}</span></td>
+    <td><span class="badge bab">❌ Absent</span></td>
+  </tr>`).join('');
 }
 
 // ── CSV ─────────────────────────────────────────────────────────
@@ -680,8 +788,19 @@ function csvSubject(){
 }
 function csvAbsent(){
   const date=document.getElementById('a-date').value||'unknown';
-  const rows=[...document.getElementById('a-body').querySelectorAll('tr')].map(tr=>{const c=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());return c.length>=6?c:null;}).filter(Boolean);
-  makeCSV(['#','Student ID','Name','Grade','Subject','Status'],rows,`absent_report_${date}.csv`);
+  const fs=document.getElementById('a-sel').value;
+  const subjsToCheck=fs?abSched.filter(s=>s.subject===fs):abSched;
+  const abRows=[];
+  subjsToCheck.forEach(({subject})=>{
+    const ps=abData[subject]||new Set();
+    Object.entries(allStuds).forEach(([sid,s])=>{
+      if(!ps.has(sid)) abRows.push([sid,s.name||'—',s.grade||'—',subject,'Absent']);
+    });
+  });
+  abRows.sort((a,b)=>a[3].localeCompare(b[3])||a[1].localeCompare(b[1]));
+  makeCSV(['#','Student ID','Name','Grade','Subject','Status'],
+    abRows.map((r,i)=>[i+1,...r]),
+    `absent_report_${date}.csv`);
 }
 
 // ── ADMIN LOGIN ─────────────────────────────────────────────────
